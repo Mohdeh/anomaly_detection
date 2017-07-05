@@ -13,13 +13,15 @@ from collections import Counter
 import json, ast
 from collections import OrderedDict
 from bson.json_util import dumps
+import networkx as nx
 
 class User:
-    def __init__(self, x):
+    def __init__(self, x, y):
         self.user_id = x
+        self.feed =y
 
     def __repr__(self):
-        return str(self.user_id)
+        return str(self.user_id) + str(self.feed)
 ############################################
 def average(s):
     return (sum(s)*1.0)/len(s)
@@ -34,17 +36,22 @@ def anomaly_calc(s):
     anomalous = average(s) + 3*stdDeviation(s)
     return anomalous
 ############################################
+# Read the lines of the input
 lines = []
+'''with open(sys.argv[2]) as f:
+    lines.extend(f.read().splitlines())'''
+
 with open('../log_input/batch_log.json') as f:
     lines.extend(f.read().splitlines())
-print("batch_log.json: " + str(lines))
+'''print("batch_log.json: " + str(lines))'''
+
 
 lines[0].encode('ascii', 'ignore')
 
 parameters = {}
 parameters = json.loads(lines[0]) # json.loads(lines[0])
 
-print(parameters)
+'''print(parameters)'''
 D = parameters ['D']
 T = parameters['T']
 #print(D, T)
@@ -53,6 +60,11 @@ T = parameters['T']
 #print("paramameters :", type(parameters))
 #print(parameters['T'])
 
+'''graph = {}  # dictionary'''
+
+G=nx.Graph()
+
+user = []
 events = {}
 amount_set=[]
 for i in range(1, len(lines)):
@@ -65,22 +77,35 @@ for i in range(1, len(lines)):
         amount_set.append(amount)
         #print(type(amount))
         #print(events[i]['amount'])
+        id = events[i]['id'].encode('ascii', 'ignore')
+        #user.append(User(id, None))
+        if id not in G:
+            G.add_node(id)
+    if events[i]['event_type'] == 'befriend':
+        id1 = events[i]['id1'].encode('ascii', 'ignore')
+        id2 = events[i]['id2'].encode('ascii', 'ignore')
+        G.add_edge(id1, id2)
+    if events[i]['event_type'] == 'unfriend':
+        id1 = events[i]['id1'].encode('ascii', 'ignore')
+        id2 = events[i]['id2'].encode('ascii', 'ignore')
+        G.remove_edge(id1, id2)
+
 
 L = len(amount_set)
-print (amount_set)
+'''print (amount_set)'''
 # avg = average(amount_set)
 # print(avg)
 if ( L > 1 and L <= T):
     anom_val = anomaly_calc(amount_set)
     anom_val = round(anom_val, 2)
-    print("anomolous purchase: " + str(anom_val))
+    '''print("anomolous purchase: " + str(anom_val))'''
 
 fw = open('../log_output/flagged_purchases.json', 'w')
 
 stream_lines = []
 with open('../log_input/stream_log.json') as fstr:
     stream_lines.extend(fstr.read().splitlines())
-print("stream_log.json: " + str(stream_lines))
+'''print("stream_log.json: " + str(stream_lines))'''
 
 str_events = {}
 #print(type(str_events))
@@ -98,7 +123,7 @@ for i in range(0, len(stream_lines)):
         str_amount = float(str_amount)
         str_amount_set.append(str_amount)
         #print(type(str_amount))
-        print(str_events[i]['amount'])
+        '''print(str_events[i]['amount'])'''
         if str_amount > anom_val:
             #json = dumps(str_events[i])
             str_events[i]['mean'] = average(str_amount_set)
@@ -110,23 +135,16 @@ for i in range(0, len(stream_lines)):
             #d = dict(itertools.izip_longest(*[iter(l)] * 2, fillvalue=""))
             dict_l = OrderedDict(str_events[i])
             #dict_l = json.loads(str_events[i], object_pairs_hook=OrderedDict)
-            print(dict_l)
-            print json.dumps(dict_l)
+            '''print(dict_l)
+            print json.dumps(dict_l)'''
             fw.write(json.dumps(dict_l))
             #fw.write(json.dumps(itemDict))
-            
+
 # Lstr = len(str_amount_set)
 # print (str_amount_set)
 
 
-'''paramDict = {}  # dictionary
 
-for p in param:
-    pair = p.split(':')
-    D = pair[0].strip()
-    T = pair[1].strip()
-    paramDict[D] = int(T)
 
-print("paramDict: ", paramDict.items)'''
 
 
